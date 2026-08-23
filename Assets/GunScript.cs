@@ -54,7 +54,7 @@ public class gun : MonoBehaviour
     {
         if  (Input.GetMouseButtonDown(0))
         {
-            if (particleSystem != null)
+            if (particleSystem != null || true)
             {
                 if (ammo > 0 && isReload == false && Time.time >= nextFireTime)
                 {
@@ -62,7 +62,7 @@ public class gun : MonoBehaviour
                     Shoot();
                     // Cập nhật thời điểm tiếp theo được bắn = thời gian hiện tại + 5 giây
                      nextFireTime = Time.time + cooldownTime;
-                    particleSystem.Play();
+                    // particleSystem.Play();
                     ammo -= 1;
                     ammoText.text = "" + ammo + " / 9";
                 }
@@ -93,9 +93,9 @@ public class gun : MonoBehaviour
     }
     void Shoot()
     {
-        // 1. Xác định vị trí và góc quay để tạo đạn
+        // 1. Dùng trực tiếp vị trí và hướng world của firePoint
         Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
-        Quaternion spawnRotation = firePoint != null ? AWM_Bullet.transform.rotation : transform.rotation;
+        Quaternion spawnRotation = firePoint != null ? firePoint.rotation : transform.rotation;
 
         // 2. Tạo bản sao của viên đạn (Spawn)
         GameObject bulletClone = Instantiate(AWM_Bullet, spawnPosition, spawnRotation);
@@ -104,9 +104,8 @@ public class gun : MonoBehaviour
         Rigidbody rb = bulletClone.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            // rb.velocity =  camera.transform.forward * bulletSpeed; 
-            rb.linearVelocity =  Vector3.back * bulletSpeed; 
-            // Lưu ý: Nếu dùng Unity phiên bản cũ hơn 2023, thay 'linearVelocity' bằng 'velocity' nhé!
+            Vector3 shootingDirection = firePoint != null ? -firePoint.forward : -transform.forward;
+            rb.linearVelocity = shootingDirection * bulletSpeed;
         }
 
         // 4. Tự động xóa bản sao này sau 3 giây
