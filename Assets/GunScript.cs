@@ -94,7 +94,7 @@ public class gun : MonoBehaviour
     void Shoot()
     {
         // 1. Dùng trực tiếp vị trí và hướng world của firePoint
-        Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
+        Vector3 spawnPosition = firePoint.position;
         Quaternion spawnRotation = firePoint != null ? firePoint.rotation : transform.rotation;
 
         // 2. Tạo bản sao của viên đạn (Spawn)
@@ -104,7 +104,7 @@ public class gun : MonoBehaviour
         Rigidbody rb = bulletClone.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            Vector3 shootingDirection = firePoint != null ? -firePoint.forward : -transform.forward;
+            Vector3 shootingDirection = firePoint != null ? firePoint.forward : transform.forward;
             rb.linearVelocity = shootingDirection * bulletSpeed;
         }
 
