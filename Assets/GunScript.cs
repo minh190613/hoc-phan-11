@@ -64,7 +64,7 @@ public class gun : MonoBehaviour
                      nextFireTime = Time.time + cooldownTime;
                     // particleSystem.Play();
                     ammo -= 1;
-                    ammoText.text = "" + ammo + " / 9";
+                    ammoText.text = "" + ammo + " / 30";
                 }
             }
            
