@@ -1,115 +1,128 @@
 using UnityEngine;
 using System.Collections;
-
-// CODE MỚI
-using UnityEngine.UI; 
 using TMPro;
 
 public class gun : MonoBehaviour
 {
     [Header("Cấu hình bắn đạn")]
-    public GameObject AWM_Bullet;    // Kéo Prefab viên đạn vào đây
-    public Transform firePoint;        // Vị trí đạn bay ra (nếu không có, đạn sẽ tự ra từ tâm nhân vật)
-    public float bulletSpeed = 25f;    // Tốc độ bay của viên đạn
-
-    private float nextFireTime = 0f;   // Thời điểm tiếp theo được phép bắn
-    private float cooldownTime = 1f;   // Thời gian hồi chiêu (5 giây)
-    public Transform camera;
+    public GameObject AWM_Bullet;
+    public Transform firePoint;
+    public float bulletSpeed = 25f;
+    public float cooldownTime = 0.15f;
     public ParticleSystem particleSystem;
+    public GameObject muzzleFlashPrefab;
+    public float muzzleFlashTime = 0.05f;
 
-    // CODE MỚI
     public TextMeshProUGUI ammoText;
 
-    [SerializeField]
-    private int ammo = 30;
+    [SerializeField] private int ammo = 30;
+    [SerializeField] private bool isReload = false;
+    private float nextFireTime = 0f;
 
-    [SerializeField]
-    private bool isReload = false;
-
-    // CODE MỚI
     void Start()
     {
         UpdateAmmoUI();
     }
 
-    IEnumerator ReloadCoroutine()
-    {
-        isReload = true;
-
-        yield return new WaitForSeconds(4f);
-
-        ammo = 30;
-        isReload = false;
-
-        // CODE MỚI
-        UpdateAmmoUI();
-    }
-
-    void Reload()
-    {
-        StartCoroutine(ReloadCoroutine());
-    }
-
     void Update()
     {
-        if  (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0))
         {
-            if (particleSystem != null || true)
+            if (ammo > 0 && !isReload && Time.time >= nextFireTime)
             {
-                if (ammo > 0 && isReload == false && Time.time >= nextFireTime)
-                {
-                    
-                    Shoot();
-                    // Cập nhật thời điểm tiếp theo được bắn = thời gian hiện tại + 5 giây
-                     nextFireTime = Time.time + cooldownTime;
-                    // particleSystem.Play();
-                    ammo -= 1;
-                    ammoText.text = "" + ammo + " / 30";
-                }
+                Shoot();
+                nextFireTime = Time.time + cooldownTime;
+                PlayMuzzleEffect();
+                ammo--;
+                if (ammoText != null)
+                    ammoText.text = ammo + " / 30";
             }
-           
         }
 
         if (Input.GetKeyDown(KeyCode.R))
         {
-            Reload();
+            StartCoroutine(ReloadCoroutine());
         }
 
-        if (ammo == 0)
+        if (ammo == 0 && !isReload)
         {
-            Reload();
+            StartCoroutine(ReloadCoroutine());
         }
     }
 
-    // CODE MỚI
+    IEnumerator ReloadCoroutine()
+    {
+        isReload = true;
+        if (ammoText != null)
+            ammoText.text = "Reload";
+
+        yield return new WaitForSeconds(1.5f);
+
+        ammo = 30;
+        isReload = false;
+        UpdateAmmoUI();
+    }
+
     void UpdateAmmoUI()
     {
         if (ammoText != null)
-        {
-            if(isReload) 
-            {ammoText.text="Reload";}
-            else {ammoText.text = ""+ammo + " / 30";}
-        }
+            ammoText.text = ammo + " / 30";
     }
+
+    void PlayMuzzleEffect()
+    {
+        if (particleSystem != null)
+        {
+            particleSystem.Play();
+            return;
+        }
+
+        if (muzzleFlashPrefab != null)
+        {
+            GameObject flash = Instantiate(muzzleFlashPrefab,
+                firePoint != null ? firePoint.position : transform.position,
+                firePoint != null ? firePoint.rotation : transform.rotation);
+            Destroy(flash, muzzleFlashTime);
+            return;
+        }
+
+        GameObject tempFlash = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        tempFlash.name = "MuzzleFlash";
+        tempFlash.transform.position = firePoint != null ? firePoint.position : transform.position;
+        tempFlash.transform.localScale = new Vector3(0.08f, 0.08f, 0.08f);
+        tempFlash.transform.SetParent(transform);
+
+        Renderer renderer = tempFlash.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            renderer.material = new Material(Shader.Find("Unlit/Color"));
+            renderer.material.color = Color.yellow;
+        }
+
+        if (tempFlash.GetComponent<Collider>() != null)
+            Destroy(tempFlash.GetComponent<Collider>());
+
+        Destroy(tempFlash, muzzleFlashTime);
+    }
+
     void Shoot()
     {
-        // 1. Dùng trực tiếp vị trí và hướng world của firePoint
-        Vector3 spawnPosition = firePoint.position;
+        if (AWM_Bullet == null)
+            return;
+
+        Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
         Quaternion spawnRotation = firePoint != null ? firePoint.rotation : transform.rotation;
 
-        // 2. Tạo bản sao của viên đạn (Spawn)
         GameObject bulletClone = Instantiate(AWM_Bullet, spawnPosition, spawnRotation);
 
-        // 3. Tìm thành phần Rigidbody (hoặc Rigidbody2D nếu là game 2D) để đẩy đạn bay về phía trước
         Rigidbody rb = bulletClone.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            Vector3 shootingDirection = firePoint != null ? firePoint.forward : transform.forward;
-            rb.linearVelocity = shootingDirection * bulletSpeed;
+            Vector3 direction = firePoint != null ? firePoint.forward : transform.forward;
+            rb.linearVelocity = direction * bulletSpeed;
+            rb.useGravity = false;
         }
 
-        // 4. Tự động xóa bản sao này sau 3 giây
-        Destroy(bulletClone, 3f); 
-
+        Destroy(bulletClone, 3f);
     }
 }
